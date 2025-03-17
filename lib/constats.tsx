@@ -1,3 +1,4 @@
+import { color } from "framer-motion";
 import { Star, Compass, Cpu } from "lucide-react";
 const skills = [
   "JavaScript",
@@ -55,6 +56,17 @@ const projects = [
     glowClass: "secondary-glow",
     github: "https://github.com/ShlokRamteke/rag_forms",
     live: "https://rag-forms.vercel.app/",
+  },
+  {
+    title: "ConvertZone - Convert Images & Videos Online",
+    description: "ConvertZone is a free online file converter ",
+    tech: ["Reactjs", "Node.js", "Express.js", "MongoDB", "AWS S3", "FFmpeg"],
+    image: "convert-zone.png",
+    color: "accent",
+    icon: <Cpu className="h-5 w-5" />,
+    glowClass: "accent-glow",
+    github: "https://github.com/ShlokRamteke/convert-zone",
+    live: "https://convertzone.vercel.app/",
   },
   {
     title: "The Inklings",
