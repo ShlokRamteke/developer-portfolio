@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "Shlok Ramteke Portfolio",
     images: [
       {
-        url: `${websiteUrl}/photo.png`,
+        url: `${websiteUrl}/photo.jpeg`,
         width: 1200,
         height: 630,
         alt: "Shlok Ramteke Portfolio",
