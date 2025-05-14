@@ -13,13 +13,26 @@ import {
   Star,
   Compass,
   Cpu,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  useAnimationControls,
+} from "framer-motion";
 import { useInView } from "framer-motion";
-import { useRef, useState } from "react";
-import { projects, skills } from "@/lib/constats";
+import { useEffect, useRef, useState } from "react";
+import { projects, skills, socialLinks } from "@/lib/constats";
 import ToggleMenu from "@/components/ToggleMenu";
+
+import { useTheme } from "next-themes";
+
+import dynamic from "next/dynamic";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Animation variants
 const fadeIn = {
@@ -36,7 +49,7 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.2,
+      staggerChildren: 0.1,
     },
   },
 };
@@ -56,6 +69,26 @@ const scaleUp = {
     scale: 1,
     opacity: 1,
     transition: { duration: 0.5 },
+  },
+};
+
+// Text reveal animation
+const textReveal = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+    },
+  },
+};
+
+const letterVariant = {
+  hidden: { opacity: 0, y: 50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
   },
 };
 
@@ -85,7 +118,197 @@ function AnimateWhenVisible({
   );
 }
 
+// Magnetic effect hook
+function useMagneticEffect(strength = 30) {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const springConfig = { damping: 15, stiffness: 150 };
+  const xSpring = useSpring(x, springConfig);
+  const ySpring = useSpring(y, springConfig);
+
+  const handleMouse = (e: any) => {
+    const { clientX, clientY } = e;
+    const element = ref.current;
+    if (!element) return;
+
+    const rect = element?.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const distanceX = clientX - centerX;
+    const distanceY = clientY - centerY;
+
+    x.set(distanceX / strength);
+    y.set(distanceY / strength);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return { ref, xSpring, ySpring, handleMouse, handleMouseLeave };
+}
+
+// Text reveal component
+function TextReveal({ text, className }: { text: string; className: string }) {
+  return (
+    <motion.div
+      variants={textReveal}
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      {text.split("").map((char, index) => (
+        <motion.span
+          key={index}
+          variants={letterVariant}
+          className="inline-block"
+        >
+          {char === " " ? "\u00A0" : char}
+        </motion.span>
+      ))}
+    </motion.div>
+  );
+}
+
+// Particle background component
+function ParticleBackground() {
+  const { theme } = useTheme();
+
+  interface Particle {
+    id: number;
+    x: number;
+    y: number;
+    size: number;
+    speed: number;
+  }
+
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    const generateParticles = () => {
+      const newParticles: Particle[] = [];
+      const count = Math.min(window.innerWidth / 10, 100);
+
+      for (let i = 0; i < count; i++) {
+        newParticles.push({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 5 + 2, // Size between 2-5px
+          speed: Math.random() * 5 + 0.3, // Increased speed range from 0.3-1.8
+        });
+      }
+
+      setParticles(newParticles);
+    };
+
+    generateParticles();
+    window.addEventListener("resize", generateParticles);
+
+    return () => window.removeEventListener("resize", generateParticles);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="particle absolute"
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: `${particle.size}px`,
+            height: `${particle.size}px`,
+            //backgroundColor: `rgba(67, 97, 238, 0.4)`,
+            //boxShadow: "0 0 8px 4px rgba(67, 97, 238, 0.4)",
+            borderRadius: "50%",
+            backgroundColor:
+              theme === "dark"
+                ? `rgba(255, 255, 255, 0.15)`
+                : `rgba(67, 97, 238, 0.4)`,
+          }}
+          animate={{
+            // y: ["0%", "100%"],
+            // opacity: [0.4, 0.8, 0.4],
+            y: ["-10%", "110%"],
+            opacity: [0, 0.8, 0],
+            x: [`${particle.x}%`, `${particle.x + (Math.random() * 20 - 10)}%`],
+          }}
+          transition={{
+            duration: 10 / particle.speed,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+            delay: Math.random() * 5,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Geometric shapes component
+function GeometricShapes() {
+  const shapes = [
+    { type: "circle", size: 100, x: "10%", y: "20%", color: "var(--primary)" },
+    { type: "square", size: 80, x: "80%", y: "15%", color: "var(--secondary)" },
+    { type: "triangle", size: 120, x: "70%", y: "60%", color: "var(--accent)" },
+    { type: "circle", size: 150, x: "20%", y: "70%", color: "var(--primary)" },
+    { type: "square", size: 60, x: "40%", y: "30%", color: "var(--secondary)" },
+    { type: "circle", size: 90, x: "85%", y: "85%", color: "var(--accent)" },
+    {
+      type: "triangle",
+      size: 70,
+      x: "15%",
+      y: "40%",
+      color: "var(--secondary)",
+    },
+    { type: "square", size: 110, x: "60%", y: "80%", color: "var(--primary)" },
+    { type: "circle", size: 130, x: "30%", y: "10%", color: "var(--accent)" },
+    { type: "triangle", size: 95, x: "50%", y: "50%", color: "var(--primary)" },
+  ];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+      {shapes.map((shape, index) => (
+        <motion.div
+          key={index}
+          className={`geometric-shape ${shape.type}`}
+          style={{
+            width: shape.size,
+            height: shape.size,
+            left: shape.x,
+            top: shape.y,
+            backgroundColor: `hsl(${shape.color})`,
+          }}
+          animate={{
+            rotate: [0, 360],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 20 + index * 5,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Scroll progress indicator
+function ScrollProgressIndicator() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+
+  return <motion.div className="scroll-indicator" style={{ scaleX }} />;
+}
+
 export default function Home() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   // Function to assign different color classes to skills
   const getSkillTagClass = (index: number) => {
     const classes = [
@@ -95,7 +318,51 @@ export default function Home() {
     ];
     return classes[index % 3];
   };
-  console.log(process.env.NEXT_PUBLIC_RESUME_URL);
+
+  // Magnetic effect for buttons
+  const primaryBtn = useMagneticEffect(15);
+  const secondaryBtn = useMagneticEffect(15);
+
+  // Parallax effect for hero section
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 500], [0, -150]);
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+  // Typewriter effect state
+  const [typewriterText, setTypewriterText] = useState("");
+  const fullText = "Hi I am Shlok Ramteke,<br />a Full Stack Developer";
+
+  useEffect(() => {
+    setMounted(true);
+
+    let i = 0;
+    const typing = setInterval(() => {
+      if (i <= fullText.length) {
+        setTypewriterText(fullText.slice(0, i));
+        i++;
+      } else {
+        clearInterval(typing);
+      }
+    }, 100);
+
+    return () => clearInterval(typing);
+  }, []);
+
+  // Animated skill tags
+  const skillControls = useAnimationControls();
+
+  useEffect(() => {
+    const animateSkills = async () => {
+      await skillControls.start({
+        scale: [1, 1.05, 1],
+        transition: { duration: 2, ease: "easeInOut" },
+      });
+      setTimeout(animateSkills, Math.random() * 5000 + 2000);
+    };
+
+    animateSkills();
+  }, [skillControls]);
+
   const [result, setResult] = useState("");
 
   const onSubmit = async (event: any) => {
@@ -125,12 +392,17 @@ export default function Home() {
       setResult(data.message);
     }
   };
-
+  // Avoid hydration mismatch
+  if (!mounted) {
+    return null;
+  }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80 theme-transition">
+      <ScrollProgressIndicator />
+
       {/* Header */}
       <motion.header
-        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b"
+        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b theme-transition"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
@@ -140,60 +412,59 @@ export default function Home() {
             Portfolio
           </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="#about"
-                className="text-sm font-medium hover:text-primary transition-colors"
+            {["About", "Skills", "Projects", "Contact"].map((item, index) => (
+              <motion.div
+                key={item}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * index, duration: 0.5 }}
               >
-                About
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="#skills"
-                className="text-sm font-medium hover:text-primary transition-colors"
-              >
-                Skills
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="#projects"
-                className="text-sm font-medium hover:text-primary transition-colors"
-              >
-                Projects
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="#contact"
-                className="text-sm font-medium hover:text-primary transition-colors"
-              >
-                Contact
-              </Link>
-            </motion.div>
+                <Link
+                  href={`#${item.toLowerCase()}`}
+                  className="text-sm font-medium hover:text-primary transition-colors"
+                >
+                  {item}
+                </Link>
+              </motion.div>
+            ))}
           </nav>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex border-primary text-primary hover:bg-primary/10"
-              onClick={() =>
-                window.open(`${process.env.NEXT_PUBLIC_RESUME_URL}`, "_blank")
-              }
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
             >
-              Resume
-            </Button>
-          </motion.div>
-          <div className="md:hidden">
-            <ToggleMenu />
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:flex border-primary text-primary hover:bg-primary/10"
+                onClick={() =>
+                  window.open(`${process.env.NEXT_PUBLIC_RESUME_URL}`, "_blank")
+                }
+              >
+                Resume
+              </Button>
+            </motion.div>
+            <div className="md:hidden">
+              <ToggleMenu />
+            </div>
           </div>
         </div>
       </motion.header>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 hero-gradient">
-        <div className="container px-4 md:px-6">
+      <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 hero-gradient overflow-hidden theme-transition">
+        <ParticleBackground />
+        <GeometricShapes />
+        <motion.div
+          className="container px-4 md:px-6 relative z-10"
+          style={{ y: heroY, opacity: heroOpacity }}
+        >
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
             <motion.div
               className="space-y-4"
@@ -210,12 +481,15 @@ export default function Home() {
                 Hello, I'm
               </motion.div>
               <motion.h1
-                className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl gradient-text"
+                className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                Shlok Ramteke <br />A Full Stack Developer
+                <span
+                  className="typewriter gradient-text"
+                  dangerouslySetInnerHTML={{ __html: typewriterText }}
+                />
               </motion.h1>
               <motion.p
                 className="max-w-[600px] text-muted-foreground md:text-xl"
@@ -234,26 +508,34 @@ export default function Home() {
                 transition={{ delay: 0.9, duration: 0.5 }}
               >
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  ref={primaryBtn.ref}
+                  style={{
+                    transform: `translate(${primaryBtn.xSpring}px, ${primaryBtn.ySpring}px)`,
+                  }}
+                  onMouseMove={primaryBtn.handleMouse}
+                  onMouseLeave={primaryBtn.handleMouseLeave}
                   className="primary-glow"
                 >
                   <Button
                     asChild
-                    className="bg-primary hover:bg-primary/90 text-white"
+                    className="bg-primary hover:bg-primary/90 text-white shine text-primary-foreground"
                   >
                     <Link href="#contact">Get in touch</Link>
                   </Button>
                 </motion.div>
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  ref={secondaryBtn.ref}
+                  style={{
+                    transform: `translate(${secondaryBtn.xSpring}px, ${secondaryBtn.ySpring}px)`,
+                  }}
+                  onMouseMove={secondaryBtn.handleMouse}
+                  onMouseLeave={secondaryBtn.handleMouseLeave}
                   className="secondary-glow"
                 >
                   <Button
                     variant="outline"
                     asChild
-                    className="border-secondary text-secondary hover:bg-secondary/10"
+                    className="border-secondary text-secondary hover:bg-secondary/10 shine"
                   >
                     <Link href="#projects">View my work</Link>
                   </Button>
@@ -265,7 +547,7 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.1, duration: 0.5 }}
               >
-                <motion.div
+                {/* <motion.div
                   whileHover={{ scale: 1.2, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -283,8 +565,46 @@ export default function Home() {
                       <Github className="h-5 w-5" />
                     </Button>
                   </Link>
-                </motion.div>
+                </motion.div> */}
                 <motion.div
+                  className="flex items-center gap-4 pt-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.1, duration: 0.5 }}
+                >
+                  {socialLinks.map((item, index) => (
+                    <motion.div
+                      key={index}
+                      whileHover={{ scale: 1.2, rotate: 5 }}
+                      whileTap={{ scale: 0.9 }}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{
+                        delay: 1.1 + index * 0.1,
+                        duration: 0.3,
+                        type: "spring",
+                      }}
+                    >
+                      <Link
+                        href={item.href || ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={
+                            item?.href?.split("://")[1]?.split(".")[0] ||
+                            "Email"
+                          }
+                          className={`text-${item.color} hover:bg-${item.color}/10`}
+                        >
+                          {item.icon}
+                        </Button>
+                      </Link>
+                    </motion.div>
+                  ))}
+                  {/* <motion.div
                   whileHover={{ scale: 1.2, rotate: 5 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -317,6 +637,7 @@ export default function Home() {
                       <Mail className="h-5 w-5" />
                     </Button>
                   </Link>
+                </motion.div> */}
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -356,11 +677,14 @@ export default function Home() {
               <ChevronDown className="h-8 w-8 text-primary" />
             </Link>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-16 md:py-24 bg-muted/50">
+      <section
+        id="about"
+        className="py-16 md:py-24 bg-muted/50 relative theme-transition"
+      >
         <div className="container px-4 md:px-6">
           <AnimateWhenVisible
             variants={fadeIn}
@@ -390,7 +714,57 @@ export default function Home() {
             variants={staggerContainer}
             className="grid gap-6 md:grid-cols-3 mt-12"
           >
-            <motion.div
+            {" "}
+            {[
+              {
+                icon: <Code className="h-8 w-8 text-primary" />,
+                title: "Developer",
+                description:
+                  "I enjoy bringing ideas to life in the browser, creating applications that are both functional and beautiful.",
+                color: "primary",
+                glowClass: "primary-glow",
+              },
+              {
+                icon: <Palette className="h-8 w-8 text-secondary" />,
+                title: "Designer",
+                description:
+                  "I value simple, clean design patterns and thoughtful interactions that enhance user experience.",
+                color: "secondary",
+                glowClass: "secondary-glow",
+              },
+              {
+                icon: <Zap className="h-8 w-8 text-accent" />,
+                title: "Problem Solver",
+                description:
+                  "I enjoy tackling complex problems and finding elegant solutions that meet business needs.",
+                color: "accent",
+                glowClass: "accent-glow",
+              },
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariant}
+                whileHover={{ y: -10 }}
+                className={`flex flex-col items-center space-y-2 rounded-lg p-6 glass-card ${item.glowClass} modern-shadow tilt theme-transition`}
+              >
+                <motion.div
+                  className={`p-3 bg-${item.color}/20 rounded-full`}
+                  whileHover={{
+                    scale: 1.1,
+                    backgroundColor: `rgba(var(--${item.color}), 0.3)`,
+                  }}
+                >
+                  {item.icon}
+                </motion.div>
+                <h3 className={`text-xl font-bold text-${item.color}`}>
+                  {item.title}
+                </h3>
+                <p className="text-center text-muted-foreground">
+                  {item.description}
+                </p>
+              </motion.div>
+            ))}
+            {/* <motion.div
               variants={itemVariant}
               whileHover={{ y: -10 }}
               className="flex flex-col items-center space-y-2 rounded-lg p-6 glass-card primary-glow modern-shadow"
@@ -449,13 +823,16 @@ export default function Home() {
                 I enjoy tackling complex problems and finding elegant solutions
                 that meet business needs.
               </p>
-            </motion.div>
+            </motion.div> */}
           </AnimateWhenVisible>
         </div>
       </section>
 
       {/* Skills Section */}
-      <section id="skills" className="py-16 md:py-24 hero-gradient">
+      <section
+        id="skills"
+        className="py-16 md:py-24 hero-gradient relative theme-transition"
+      >
         <div className="container px-4 md:px-6">
           <AnimateWhenVisible
             variants={fadeIn}
@@ -483,9 +860,11 @@ export default function Home() {
                 key={index}
                 variants={itemVariant}
                 whileHover={{ scale: 1.05, y: -5 }}
+                animate={skillControls}
+                custom={index}
                 className={`px-4 py-2 rounded-full text-sm font-medium ${getSkillTagClass(
                   index
-                )}`}
+                )} theme-transition`}
               >
                 {skill}
               </motion.div>
@@ -495,7 +874,10 @@ export default function Home() {
       </section>
 
       {/* Projects Section */}
-      <section id="projects" className="py-16 md:py-24 bg-muted/50">
+      <section
+        id="projects"
+        className="py-16 md:py-24 bg-muted/50 relative theme-transition"
+      >
         <div className="container px-4 md:px-6">
           <AnimateWhenVisible
             variants={fadeIn}
@@ -524,12 +906,13 @@ export default function Home() {
                 whileHover={{
                   y: -10,
                 }}
-                className={`group relative overflow-hidden rounded-lg glass-card ${project.glowClass} modern-shadow`}
+                className={`group relative overflow-hidden rounded-lg glass-card ${project.glowClass} modern-shadow theme-transition`}
               >
                 <div className="aspect-video overflow-hidden rounded-t-lg">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.5 }}
+                    className="relative w-full h-full"
                   >
                     <Image
                       src={project.image || "/placeholder.svg"}
@@ -538,6 +921,15 @@ export default function Home() {
                       height={400}
                       className="object-cover w-full h-full"
                     />
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end"
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                    >
+                      <div className="p-4 text-white">
+                        <p className="font-medium">View Project</p>
+                      </div>
+                    </motion.div>
                   </motion.div>
                 </div>
                 <div className="p-6">
@@ -581,9 +973,10 @@ export default function Home() {
                       <Link href={project.live} target="_blank">
                         <Button
                           size="sm"
-                          className={`gap-1 bg-${project.color} hover:bg-${project.color}/90`}
+                          className={`gap-1 bg-${project.color} hover:bg-${project.color}/90 text-${project.color}-foreground`}
                         >
-                          {project.icon}
+                          {/* {project.icon} */}
+                          <ExternalLink className="h-4 w-4" />
                           Demo
                         </Button>
                       </Link>
@@ -597,7 +990,10 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-16 md:py-24 hero-gradient">
+      <section
+        id="contact"
+        className="py-16 md:py-24 hero-gradient relative theme-transition"
+      >
         <div className="container px-4 md:px-6">
           <AnimateWhenVisible
             variants={fadeIn}
@@ -621,7 +1017,7 @@ export default function Home() {
             className="mx-auto max-w-lg mt-12"
           >
             <motion.form
-              className="grid gap-6 glass-card p-8 rounded-xl modern-shadow"
+              className="grid gap-6 glass-card p-8 rounded-xl modern-shadow theme-transition"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
@@ -641,7 +1037,7 @@ export default function Home() {
                     boxShadow: "0 0 0 2px rgba(var(--primary), 0.3)",
                   }}
                   id="name"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 theme-transition"
                   placeholder="Enter your name"
                 />
               </motion.div>
@@ -659,7 +1055,7 @@ export default function Home() {
                   }}
                   id="email"
                   type="email"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 theme-transition"
                   placeholder="Enter your email"
                 />
               </motion.div>
@@ -688,7 +1084,7 @@ export default function Home() {
               >
                 <Button
                   type="submit"
-                  className="w-full bg-primary hover:bg-primary/90"
+                  className="w-full bg-primary hover:bg-primary/90 shine text-primary-foreground"
                 >
                   Send Message
                 </Button>
@@ -699,7 +1095,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-6 md:py-8">
+      <footer className="border-t py-6 md:py-8 theme-transition">
         <div className="container flex flex-col items-center justify-center gap-4 px-4 md:px-6 text-center">
           <motion.div
             className="flex items-center gap-4"
@@ -708,7 +1104,31 @@ export default function Home() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <motion.div
+            {socialLinks.map((item, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.2, rotate: 5 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <Link
+                  href={item.href || ""}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={
+                      item?.href?.split("://")[1]?.split(".")[0] || "Email"
+                    }
+                    className={`text-${item.color} hover:bg-${item.color}/10`}
+                  >
+                    {item.icon}
+                  </Button>
+                </Link>
+              </motion.div>
+            ))}
+            {/* <motion.div
               whileHover={{ scale: 1.2, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
             >
@@ -760,7 +1180,7 @@ export default function Home() {
                   <Mail className="h-5 w-5" />
                 </Button>
               </Link>
-            </motion.div>
+            </motion.div> */}
           </motion.div>
           <motion.p
             className="text-sm text-muted-foreground"
