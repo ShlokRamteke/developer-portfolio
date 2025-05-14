@@ -1,5 +1,5 @@
 import { color } from "framer-motion";
-import { Star, Compass, Cpu } from "lucide-react";
+import { Star, Compass, Cpu, Github, Linkedin, Mail } from "lucide-react";
 const skills = [
   "JavaScript",
   "TypeScript",
@@ -91,4 +91,22 @@ const projects = [
     live: "https://mygamemanager.netlify.app/",
   },
 ];
-export { skills, projects };
+
+const socialLinks = [
+  {
+    icon: <Github className="h-5 w-5" />,
+    href: process.env.NEXT_PUBLIC_GITHUB_PROFILE_URL,
+    color: "primary",
+  },
+  {
+    icon: <Linkedin className="h-5 w-5" />,
+    href: process.env.NEXT_PUBLIC_LINKEDIN_PROFILE_URL,
+    color: "secondary",
+  },
+  {
+    icon: <Mail className="h-5 w-5" />,
+    href: `mailto:${process.env.NEXT_PUBLIC_EMAIL_ID}`,
+    color: "accent",
+  },
+];
+export { skills, projects, socialLinks };

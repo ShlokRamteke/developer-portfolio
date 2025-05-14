@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 const websiteUrl =
   process.env.WEBSITE_URL || "https://www.mediaconverterpro.com";
 
@@ -87,7 +88,17 @@ export default function RootLayout({
           content={process.env.GOOGLE_SITE_VERIFICATION}
         />
       </head>
-      <body>{children}</body>
+
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
