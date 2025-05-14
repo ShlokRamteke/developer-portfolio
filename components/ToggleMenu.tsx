@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { useTheme } from "next-themes";
 
 const SideTabMenu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme } = useTheme();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -42,13 +44,13 @@ const SideTabMenu = () => {
 
       {/* Side Tab Menu */}
       <div
-        className={`fixed inset-x-0 top-0 w-full bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed inset-x-0 top-0 w-full bg-background border-b shadow-lg transform transition-all duration-300 ease-in-out z-50 theme-transition ${
           isMenuOpen ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-        <div className="p-4 bg-white">
+        <div className="p-4 bg-background theme-transition">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Menu</h2>
+            <h2 className="text-xl font-bold text-foreground">Menu</h2>
             <Button
               variant="ghost"
               size="icon"
@@ -75,28 +77,28 @@ const SideTabMenu = () => {
           <nav>
             <a
               href="#about"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              className="block px-4 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors theme-transition"
               onClick={closeMenu}
             >
               About
             </a>
             <a
               href="#projects"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              className="block px-4 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors theme-transition"
               onClick={closeMenu}
             >
               Projects
             </a>
             <a
               href="#skills"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              className="block px-4 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors theme-transition"
               onClick={closeMenu}
             >
               Skills
             </a>
             <a
               href="#contact"
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+              className="block px-4 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors theme-transition"
               onClick={closeMenu}
             >
               Contact
@@ -108,7 +110,7 @@ const SideTabMenu = () => {
       {/* Overlay */}
       {isMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 theme-transition"
           onClick={toggleMenu}
         />
       )}
