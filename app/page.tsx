@@ -368,30 +368,45 @@ export default function Home() {
   const onSubmit = async (event: any) => {
     event.preventDefault();
     setResult("Sending....");
+    
     const formData = new FormData(event.target);
+    const name = formData.get("name");
+    const email = formData.get("email");
+    const message = formData.get("message");
 
     const accessKey = process.env.NEXT_PUBLIC_ACCESS_KEY_FORM;
-    if (accessKey) {
-      formData.append("access_key", accessKey);
-    } else {
+    if (!accessKey) {
       console.error("Access key is not defined");
+      setResult("Error: Form configuration is missing");
+      return;
     }
 
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      body: formData,
-    });
+    formData.append("access_key", accessKey);
+    formData.append("from_name", name as string);
+    formData.append("reply_to", email as string);
+    formData.append("message", message as string);
 
-    const data = await response.json();
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (data.success) {
-      setResult("Form Submitted Successfully");
-      event.target.reset();
-    } else {
-      console.log("Error", data);
-      setResult(data.message);
+      const data = await response.json();
+
+      if (data.success) {
+        setResult("Message sent successfully! I'll get back to you soon.");
+        event.target.reset();
+      } else {
+        console.error("Error", data);
+        setResult(data.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setResult("Failed to send message. Please try again later.");
     }
   };
+
   // Avoid hydration mismatch
   if (!mounted) {
     return null;
@@ -1037,6 +1052,8 @@ export default function Home() {
                     boxShadow: "0 0 0 2px rgba(var(--primary), 0.3)",
                   }}
                   id="name"
+                  name="name"
+                  required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 theme-transition"
                   placeholder="Enter your name"
                 />
@@ -1054,7 +1071,9 @@ export default function Home() {
                     boxShadow: "0 0 0 2px rgba(var(--primary), 0.3)",
                   }}
                   id="email"
+                  name="email"
                   type="email"
+                  required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 theme-transition"
                   placeholder="Enter your email"
                 />
@@ -1072,10 +1091,23 @@ export default function Home() {
                     boxShadow: "0 0 0 2px rgba(var(--primary), 0.3)",
                   }}
                   id="message"
+                  name="message"
+                  required
                   className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="Enter your message"
                 />
               </motion.div>
+              {result && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`text-sm font-medium ${
+                    result.includes("success") ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {result}
+                </motion.div>
+              )}
               <motion.div
                 variants={itemVariant}
                 whileHover={{ scale: 1.02 }}
