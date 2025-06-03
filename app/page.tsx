@@ -35,276 +35,137 @@ import dynamic from "next/dynamic";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Animation variants
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6 },
-  },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariant = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5 },
-  },
-};
-
-const scaleUp = {
-  hidden: { scale: 0.8, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: { duration: 0.5 },
-  },
-};
+import {
+  fadeIn,
+  staggerContainer,
+  itemVariant,
+  scaleUp,
+} from "@/components/animations/variants";
 
 // Text reveal animation
-const textReveal = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.03,
-    },
-  },
-};
-
-const letterVariant = {
-  hidden: { opacity: 0, y: 50 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+import { TextReveal, textReveal, letterVariant } from "@/components/TextReveal";
 
 // Custom hook for animations when element is in view
-function AnimateWhenVisible({
-  children,
-  variants,
-  className,
-}: {
-  children: React.ReactNode;
-  variants: any;
-  className: string;
-}) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      variants={variants}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+import { AnimateWhenVisible } from "@/components/AnimateWhenVisible";
 
 // Magnetic effect hook
-function useMagneticEffect(strength = 30) {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springConfig = { damping: 15, stiffness: 150 };
-  const xSpring = useSpring(x, springConfig);
-  const ySpring = useSpring(y, springConfig);
-
-  const handleMouse = (e: any) => {
-    const { clientX, clientY } = e;
-    const element = ref.current;
-    if (!element) return;
-
-    const rect = element?.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const distanceX = clientX - centerX;
-    const distanceY = clientY - centerY;
-
-    x.set(distanceX / strength);
-    y.set(distanceY / strength);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return { ref, xSpring, ySpring, handleMouse, handleMouseLeave };
-}
-
-// Text reveal component
-function TextReveal({ text, className }: { text: string; className: string }) {
-  return (
-    <motion.div
-      variants={textReveal}
-      initial="hidden"
-      animate="visible"
-      className={className}
-    >
-      {text.split("").map((char, index) => (
-        <motion.span
-          key={index}
-          variants={letterVariant}
-          className="inline-block"
-        >
-          {char === " " ? "\u00A0" : char}
-        </motion.span>
-      ))}
-    </motion.div>
-  );
-}
+import { useMagneticEffect } from "@/components/hooks/useMagneticEffect";
 
 // Particle background component
-function ParticleBackground() {
-  const { theme } = useTheme();
-
-  interface Particle {
-    id: number;
-    x: number;
-    y: number;
-    size: number;
-    speed: number;
-  }
-
-  const [particles, setParticles] = useState<Particle[]>([]);
-
-  useEffect(() => {
-    const generateParticles = () => {
-      const newParticles: Particle[] = [];
-      const count = Math.min(window.innerWidth / 10, 100);
-
-      for (let i = 0; i < count; i++) {
-        newParticles.push({
-          id: i,
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-          size: Math.random() * 5 + 2, // Size between 2-5px
-          speed: Math.random() * 5 + 0.3, // Increased speed range from 0.3-1.8
-        });
-      }
-
-      setParticles(newParticles);
-    };
-
-    generateParticles();
-    window.addEventListener("resize", generateParticles);
-
-    return () => window.removeEventListener("resize", generateParticles);
-  }, []);
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="particle absolute"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            //backgroundColor: `rgba(67, 97, 238, 0.4)`,
-            //boxShadow: "0 0 8px 4px rgba(67, 97, 238, 0.4)",
-            borderRadius: "50%",
-            backgroundColor:
-              theme === "dark"
-                ? `rgba(255, 255, 255, 0.15)`
-                : `rgba(67, 97, 238, 0.4)`,
-          }}
-          animate={{
-            // y: ["0%", "100%"],
-            // opacity: [0.4, 0.8, 0.4],
-            y: ["-10%", "110%"],
-            opacity: [0, 0.8, 0],
-            x: [`${particle.x}%`, `${particle.x + (Math.random() * 20 - 10)}%`],
-          }}
-          transition={{
-            duration: 10 / particle.speed,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-            delay: Math.random() * 5,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+import { ParticleBackground } from "@/components/ParticleBackground";
 
 // Geometric shapes component
-function GeometricShapes() {
-  const shapes = [
-    { type: "circle", size: 100, x: "10%", y: "20%", color: "var(--primary)" },
-    { type: "square", size: 80, x: "80%", y: "15%", color: "var(--secondary)" },
-    { type: "triangle", size: 120, x: "70%", y: "60%", color: "var(--accent)" },
-    { type: "circle", size: 150, x: "20%", y: "70%", color: "var(--primary)" },
-    { type: "square", size: 60, x: "40%", y: "30%", color: "var(--secondary)" },
-    { type: "circle", size: 90, x: "85%", y: "85%", color: "var(--accent)" },
-    {
-      type: "triangle",
-      size: 70,
-      x: "15%",
-      y: "40%",
-      color: "var(--secondary)",
-    },
-    { type: "square", size: 110, x: "60%", y: "80%", color: "var(--primary)" },
-    { type: "circle", size: 130, x: "30%", y: "10%", color: "var(--accent)" },
-    { type: "triangle", size: 95, x: "50%", y: "50%", color: "var(--primary)" },
-  ];
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-      {shapes.map((shape, index) => (
-        <motion.div
-          key={index}
-          className={`geometric-shape ${shape.type}`}
-          style={{
-            width: shape.size,
-            height: shape.size,
-            left: shape.x,
-            top: shape.y,
-            backgroundColor: `hsl(${shape.color})`,
-          }}
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20 + index * 5,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: "linear",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+import { GeometricShapes } from "@/components/GeometricShapes";
 
 // Scroll progress indicator
-function ScrollProgressIndicator() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+import { ScrollProgressIndicator } from "@/components/ScrollProgressIndicator";
 
-  return <motion.div className="scroll-indicator" style={{ scaleX }} />;
-}
+export default function Home() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  // Function to assign different color classes to skills
+  const getSkillTagClass = (index: number) => {
+    const classes = [
+      "skill-tag-primary",
+      "skill-tag-secondary",
+      "skill-tag-accent",
+    ];
+    return classes[index % 3];
+  };
+
+  // Magnetic effect for buttons
+  const primaryBtn = useMagneticEffect(15);
+  const secondaryBtn = useMagneticEffect(15);
+
+  // Parallax effect for hero section
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 500], [0, -150]);
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+  // Typewriter effect state
+  const [typewriterText, setTypewriterText] = useState("");
+  const fullText = "Hi I am Shlok Ramteke,<br />a Full Stack Developer";
+
+  useEffect(() => {
+    setMounted(true);
+
+    let i = 0;
+    const typing = setInterval(() => {
+      if (i <= fullText.length) {
+        setTypewriterText(fullText.slice(0, i));
+        i++;
+      } else {
+        clearInterval(typing);
+      }
+    }, 100);
+
+    return () => clearInterval(typing);
+  }, []);
+
+  // Animated skill tags
+  const skillControls = useAnimationControls();
+
+  useEffect(() => {
+    const animateSkills = async () => {
+      await skillControls.start({
+        scale: [1, 1.05, 1],
+        transition: { duration: 2, ease: "easeInOut" },
+      });
+      setTimeout(animateSkills, Math.random() * 5000 + 2000);
+    };
+
+    animateSkills();
+  }, [skillControls]);
+
+  const [result, setResult] = useState("");
+
+  const onSubmit = async (event: any) => {
+    event.preventDefault();
+    setResult("Sending....");
+
+    const formData = new FormData(event.target);
+    const name = formData.get("name");
+    const email = formData.get("email");
+    const message = formData.get("message");
+
+    const accessKey = process.env.NEXT_PUBLIC_ACCESS_KEY_FORM;
+    if (!accessKey) {
+      console.error("Access key is not defined");
+      setResult("Error: Form configuration is missing");
+      return;
+    }
+
+    formData.append("access_key", accessKey);
+    formData.append("from_name", name as string);
+    formData.append("reply_to", email as string);
+    formData.append("message", message as string);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setResult("Message sent successfully! I'll get back to you soon.");
+        event.target.reset();
+      } else {
+        console.error("Error", data);
+        setResult(data.message || "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setResult("Failed to send message. Please try again later.");
+    }
+  };
+
+  // Avoid hydration mismatch
+  if (!mounted) {
+    return null;
+  }
+import { Header } from "@/components/sections/Header";
 
 export default function Home() {
   const { theme, setTheme } = useTheme();
@@ -414,63 +275,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 theme-transition">
       <ScrollProgressIndicator />
-
-      {/* Header */}
-      <motion.header
-        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b theme-transition"
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="container flex items-center justify-between h-16 px-4 md:px-6">
-          <Link href="/" className="text-xl font-bold gradient-text">
-            Portfolio
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            {["About", "Skills", "Projects", "Contact"].map((item, index) => (
-              <motion.div
-                key={item}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index, duration: 0.5 }}
-              >
-                <Link
-                  href={`#${item.toLowerCase()}`}
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  {item}
-                </Link>
-              </motion.div>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden md:flex border-primary text-primary hover:bg-primary/10"
-                onClick={() =>
-                  window.open(`${process.env.NEXT_PUBLIC_RESUME_URL}`, "_blank")
-                }
-              >
-                Resume
-              </Button>
-            </motion.div>
-            <div className="md:hidden">
-              <ToggleMenu />
-            </div>
-          </div>
-        </div>
-      </motion.header>
+      <Header />
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 hero-gradient overflow-hidden theme-transition">
